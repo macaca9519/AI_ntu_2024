@@ -82,148 +82,136 @@ def depthFirstSearch(problem: SearchProblem):
     print("Start's successors:", problem.getSuccessors(problem.getStartState()))
     """
     "*** YOUR CODE HERE ***"
-    stack = util.Stack()
-    trace = util.Stack()
+    st = util.Stack()
+    path = util.Stack()
 
-    traveled = []
-    step_counter = 0
+    visited = []
+    cnt = 0
 
     start_state = problem.getStartState()
-    stack.push((start_state, step_counter, 'START'))
+    st.push((start_state, cnt, 'S'))
 
-    while not stack.isEmpty():
+    while not st.isEmpty():
         
         # arrive at state
-        curr_state, _, action = stack.pop()
-        traveled.append(curr_state)
+        curr_state, _, action = st.pop()
+        visited.append(curr_state)
         
         # record action that get to that state
-        if action != 'START':
-            trace.push(action)
-            step_counter += 1
+        if action != 'S':
+            path.push(action) 
+            cnt += 1
 
         # check if state is goal
         if problem.isGoalState(curr_state):
-            return trace.list
+            return path.list
 
         # get possible next states
         valid_successors = 0
-        successors = problem.getSuccessors(curr_state)
-
-        for successor in successors:
-
-            next_state = successor[0]
-            next_action = successor[1]
-
+        for successor in problem.getSuccessors(curr_state):
             # avoid traveling back to previous states
-            if next_state not in traveled:
-                valid_successors += 1
-                stack.push((next_state, step_counter, next_action))
+            if successor[0] not in visited:
+                valid_successors = 1
+                st.push((successor[0], cnt, successor[1]))
 
-        # dead end, step backwards
-        if valid_successors == 0:
-            while step_counter != stack.list[-1][1]: # back until next awaiting state
-                step_counter -= 1
-                trace.pop()
+        # dead end, backtrace 
+        if not valid_successors:
+            while cnt != st.list[-1][1]: # remove the record 
+                # print(f'{st.pop()}')
+                cnt -= 1
+                path.pop()
     
 
 def breadthFirstSearch(problem: SearchProblem):
     """Search the shallowest nodes in the search tree first."""
     "*** YOUR CODE HERE ***"
     queue = util.Queue()
-    trace = {}
-    seen = []
+    path = {}
+    visited = []
 
     start_state = problem.getStartState()
     queue.push(start_state)
-    seen.append(start_state)
+    visited.append(start_state)
 
     while not queue.isEmpty():
         
         # arrive at state
-        curr_state = queue.pop()
+        curr = queue.pop()
 
         # check if state is goal
-        if problem.isGoalState(curr_state):
+        if problem.isGoalState(curr):
             break
 
-        # get possible next states
-        successors = problem.getSuccessors(curr_state)
-        
-        for successor in successors:
-
-            next_state = successor[0]
-            next_action = successor[1]
-
+        for successor in problem.getSuccessors(curr):
             # avoid traveling back to previous states
-            if next_state not in seen:
-                seen.append(next_state)
-                queue.push(next_state)
-                trace[next_state] = (curr_state, next_action)
+            if successor[0] not in visited:
+                visited.append(successor[0])
+                queue.push(successor[0])
+                path[successor[0]] = (curr, successor[1])
 
     # back track
-    actions = []
-    backtrack_state = curr_state # the goal state
-    while backtrack_state != start_state:
-        prev_state, action = trace[backtrack_state]
-        actions.append(action)
-        backtrack_state = prev_state
-    actions = list(reversed(actions))
+    move_record = util.Stack()
+    tr = curr # the goal state
+    while tr != start_state:
+        prev, action = path[tr]
+        move_record.push(action)
+        tr = prev
+    ret = []
+    while not move_record.isEmpty():
+        ret.append(move_record.pop())
 
-    return actions
+
+    return ret
 
 def uniformCostSearch(problem: SearchProblem):
     """Search the node of least total cost first."""
     "*** YOUR CODE HERE ***"
-    priority_queue = util.PriorityQueue()
-    trace = {}
-    seen = []
+    p_queue = util.PriorityQueue()
+    path = {}
+    visited = []
 
     start_state = problem.getStartState()
     prev_cost = 0
-    trace[start_state] = [None, None, prev_cost]
+    path[start_state] = [None, None, prev_cost] #[state, action, cost]
 
-    priority_queue.update(start_state, 0)
-    seen.append(start_state)
+    p_queue.push(start_state, 0)
+    visited.append(start_state)
 
-    while not priority_queue.isEmpty():
+    while not p_queue.isEmpty():
         
         # arrive at state
-        curr_state = priority_queue.pop()
+        curr_state = p_queue.pop()
 
         # check if state is goal
         if problem.isGoalState(curr_state):
             break
 
-        # get possible next states
-        successors = problem.getSuccessors(curr_state)
-        
-        for successor in successors:
+        for successor in problem.getSuccessors(curr_state):
 
             next_state = successor[0]
             next_action = successor[1]
             next_cost = successor[2]
 
             # avoid traveling back to previous states
-            if next_state not in seen:
-                prev_cost = trace[curr_state][2]
-                seen.append(next_state)
-                priority_queue.update(next_state, next_cost + prev_cost)
+            if next_state not in visited:
+                prev_cost = path[curr_state][2]
+                visited.append(next_state)
+                p_queue.update(next_state, next_cost + prev_cost)
                 
             # update and allow tracing to the best state
-            if next_state in trace:
-                if trace[next_state][2] > next_cost + prev_cost:
-                    trace[next_state][2] = next_cost + prev_cost
-                    trace[next_state][1] = next_action
-                    trace[next_state][0] = curr_state
+            if next_state in path:
+                if path[next_state][2] > next_cost + prev_cost:
+                    path[next_state][2] = next_cost + prev_cost
+                    path[next_state][1] = next_action
+                    path[next_state][0] = curr_state
             else:
-                trace[next_state] = [curr_state, next_action, next_cost + prev_cost]
+                path[next_state] = [curr_state, next_action, next_cost + prev_cost]
 
     # back track
     actions = []
     backtrack_state = curr_state # the goal state
     while backtrack_state != start_state:
-        prev_state, action, _ = trace[backtrack_state]
+        prev_state, action, _ = path[backtrack_state]
         actions.append(action)
         backtrack_state = prev_state
     actions = list(reversed(actions))
@@ -240,26 +228,24 @@ def nullHeuristic(state, problem=None):
 def aStarSearch(problem: SearchProblem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
     "*** YOUR CODE HERE ***"
-    fringe = util.PriorityQueue()
-    # Just location, like [7, 7]
+
     startLocation = problem.getStartState()
-    # (location, path, cost)
     startNode = (startLocation, [], 0)
+    fringe = util.PriorityQueue()
     fringe.push(startNode, 0)
-    visitedLocation = set()
+    visited = []
 
     while not fringe.isEmpty():
         # node[0] is location, while node[1] is path, while node[2] is cumulative cost
         node = fringe.pop()
         if problem.isGoalState(node[0]):
             return node[1]
-        if node[0] not in visitedLocation:
-            visitedLocation.add(node[0])
+        if node[0] not in visited:
+            visited.append(node[0])
             for successor in problem.getSuccessors(node[0]):
-                if successor[0] not in visitedLocation:
+                if successor[0] not in visited:
                     cost = node[2] + successor[2]
-                    totalCost = cost + heuristic(successor[0], problem)
-                    fringe.push((successor[0], node[1] + [successor[1]], cost), totalCost)
+                    fringe.push((successor[0], node[1] + [successor[1]], cost), cost + heuristic(successor[0], problem))
 
     return None
 

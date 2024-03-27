@@ -281,15 +281,14 @@ class CornersProblem(search.SearchProblem):
         space)
         """
         "*** YOUR CODE HERE ***"
-        state = (self.startingPosition, (0, 1, 2, 3))
-        return state
+        return (self.startingPosition, (0, 1, 2, 3))
 
     def isGoalState(self, state: Any):
         """
         Returns whether this search state is a goal state of the problem.
         """
         "*** YOUR CODE HERE ***"
-        return not state[1]
+        return not state[1] #no corner that haven't reach
 
     def getSuccessors(self, state: Any):
         """
@@ -314,26 +313,22 @@ class CornersProblem(search.SearchProblem):
             "*** YOUR CODE HERE ***"
             x, y = state[0]
             dx, dy = Actions.directionToVector(action)
-            nextX, nextY = int(x + dx), int(y + dy)
-
-            if not self.walls[nextX][nextY]:
-                # Change state[1] if reaches corner
-                remainedCorners = state[1]
-                nextLocation = (nextX, nextY)
+            nextx, nexty = int(x + dx), int(y + dy)
+            hitsWall = self.walls[nextx][nexty]
+            if not hitsWall:
+                remain = state[1]
+                nextLocation = (nextx, nexty)
                 try:
-                    # Find out if the successor is a corner
-                    idx = self.corners.index(nextLocation)
+                    if self.corners.index(nextLocation) in remain:
+                        temp = list(remain)
+                        temp.remove(self.corners.index(nextLocation))
+                        remain = tuple(temp)
                 except:
                     pass
-                else:
-                    if idx in remainedCorners:
-                        temp = list(remainedCorners)
-                        temp.remove(idx)
-                        remainedCorners = tuple(temp)
 
-                nextState = (nextLocation, remainedCorners)
+
+                nextState = (nextLocation, remain)
                 successors.append((nextState, action, 1))
-
 
         self._expanded += 1 # DO NOT CHANGE
         return successors
@@ -367,13 +362,13 @@ def cornersHeuristic(state: Any, problem: CornersProblem):
     """
     corners = problem.corners # These are the corner coordinates
     walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
-    position = state[0]
+    pos = state[0]
     cornersIndices = state[1]
     if not cornersIndices:
         return 0
 
     # max manhattan distance among all remained corners
-    return max([util.manhattanDistance(position, corners[idx]) for idx in cornersIndices])
+    return max([util.manhattanDistance(pos, corners[idx]) for idx in cornersIndices])
 
     "*** YOUR CODE HERE ***"
     return 0 # Default to trivial solution
