@@ -137,7 +137,7 @@ python autograder.py -q q3
 ```
 
 ## Q4. A* Search (null heuristic)
-Implement A* graph search in the empty function <code>aStarSearch</code> in <code>search.py</code>. A* takes a heuristic function as an argument. Heuristics take two arguments: a state in the search problem (the main argument), and the problem itself (for reference information). The <code>nullHeuristic</code> heuristic function in <code>search.py<code> is a trivial example.
+Implement A* graph search in the empty function <code>aStarSearch</code> in <code>search.py</code>. A* takes a heuristic function as an argument. Heuristics take two arguments: a state in the search problem (the main argument), and the problem itself (for reference information). The <code>nullHeuristic</code> heuristic function in <code>search.py</code> is a trivial example.
 
 You can test your A* implementation on the original problem of finding a path through a maze to a fixed position using the Manhattan distance heuristic (implemented already as <code>manhattanHeuristic</code> in <code>searchAgents.py</code>).
 ```bash
