@@ -25,3 +25,13 @@ Just simply move toward the food with shortest manhattanDistance.
 if the ghost is next to the pacman, return -1 to avoid pacman kill itself.
 
 ## Demonstrate the speed up after the implementation of pruning.
+simply modify autograder.py (Note: No any other modify)
+![img](pic/autograder.png)
+
+### result:   speed up = 1.185210647
+#### Minmax:
+![img](pic/speed_q2.png)
+#### alpha-beta:
+![img](pic/speed_q3.png)
+
+

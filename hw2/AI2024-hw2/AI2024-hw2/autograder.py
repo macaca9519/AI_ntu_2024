@@ -356,7 +356,11 @@ if __name__ == '__main__':
         runTest(options.runTest, moduleDict, printTestCase=options.printTestCase,
                 display=getDisplay(True, options))
     else:
+        import time
+        start_time = time.time()
         evaluate(options.generateSolutions, options.testRoot, moduleDict,
                  gsOutput=options.gsOutput,
                  edxOutput=options.edxOutput, muteOutput=options.muteOutput, printTestCase=options.printTestCase,
                  questionToGrade=options.gradeQuestion, display=getDisplay(options.gradeQuestion != None, options))
+        print("--- %s seconds ---" % (time.time() - start_time))
+
