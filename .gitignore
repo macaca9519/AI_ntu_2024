@@ -1,3 +1,6 @@
 **.zip
 # AI2024-hw**.pdf
 **/vir
+**/__pycache__/
+rename.py
+report.md
