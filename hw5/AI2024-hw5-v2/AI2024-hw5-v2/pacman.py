@@ -22,13 +22,13 @@ def parse_args():
     parser.add_argument('--image_hw', type=int, default=84, help='The height and width of the image')
     parser.add_argument('--num_envs', type=int, default=4)
     # DQN hyperparameters
-    parser.add_argument('--lr', type=float, default=1e-4)
+    parser.add_argument('--lr', type=float, default=1e-5)
     parser.add_argument('--epsilon', type=float, default=0.9)
-    parser.add_argument('--epsilon_min', type=float, default=0.05)
+    parser.add_argument('--epsilon_min', type=float, default=0.1)
     parser.add_argument('--gamma', type=float, default=0.99)
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--warmup_steps', type=int, default=5000)
-    parser.add_argument('--buffer_size', type=int, default=int(1e5))
+    parser.add_argument('--buffer_size', type=int, default=int(1e6))
     parser.add_argument('--target_update_interval', type=int, default=10000)
     # training hyperparameters
     parser.add_argument('--max_steps', type=int, default=int(2.5e5))
@@ -40,6 +40,7 @@ def parse_args():
     # evaluation
     parser.add_argument('--eval', action="store_true", help='evaluate the model')
     parser.add_argument('--eval_model_path', type=str, default=None, help='the path of the model to evaluate')
+    print(parser)
     return parser.parse_args()
 
 def validation(agent, num_evals=5):
@@ -50,12 +51,10 @@ def validation(agent, num_evals=5):
     for i in range(num_evals):
         (state, _), done = eval_env.reset(), False
         while not done:
-            "*** YOUR CODE HERE ***"
-            utils.raiseNotDefined()
             # do action from your agent
-            action = YOUR_CODE_HERE
+            action = agent.act(state, training=False)
             # get your action feedback from environment
-            next_state, reward, terminated, truncated, info = YOUR_CODE_HERE
+            next_state, reward, terminated, truncated, info = eval_env.step(action)
             
             state = next_state
             scores += reward
@@ -83,11 +82,11 @@ def train(agent, env):
             history['AvgScore'].append(avg_score)
             
             # log info to plot your figure
-            "*** YOUR CODE HERE ***"
+            utils.log_info(history, args.save_root / 'training_log.csv')
             
             # save model
-            torch.save(agent.network.state_dict(), save_dir / 'pacma_dqn.pt')
-            print("Step: {}, AvgScore: {}, ValueLoss: {}".format(agent.total_steps, avg_score, result["value_loss"]))
+            torch.save(agent.network.state_dict(), save_dir / 'pacman_dqn.pt')
+            print("Step: {}, AvgScore: {}, ValueLoss: {}".format(agent.total_steps, avg_score, result.get("loss", "N/A")))
 
 def evaluate(agent, eval_env, capture_frames=True):
     seed_everything(0, eval_env) # don't modify
@@ -151,4 +150,3 @@ if __name__ == "__main__":
         evaluate(agent=None, eval_env=eval_env, capture_frames=False)
     else:
         main()
-    

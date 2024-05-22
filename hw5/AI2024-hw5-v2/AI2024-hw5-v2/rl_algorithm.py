@@ -9,22 +9,34 @@ import utils
 class PacmanActionCNN(nn.Module):
     def __init__(self, state_dim, action_dim):
         super(PacmanActionCNN, self).__init__()
-        # build your own CNN model
-        "*** YOUR CODE HERE ***"
-        utils.raiseNotDefined()
-        # this is just an example, you can modify this.
-        self.conv1 = nn.Conv2d(state_dim, 16, kernel_size=8, stride=4)
+        self.conv1 = nn.Conv2d(state_dim, 32, kernel_size=8, stride=4)
+        self.bn1 = nn.BatchNorm2d(32)
+        self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
+        self.bn2 = nn.BatchNorm2d(64)
+        self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
+        self.bn3 = nn.BatchNorm2d(64)
+
+        # Dueling DQN
+        self.fc1_value = nn.Linear(64 * 7 * 7, 512)
+        self.fc1_advantage = nn.Linear(64 * 7 * 7, 512)
+        self.value = nn.Linear(512, 1)
+        self.advantage = nn.Linear(512, action_dim)
 
     def forward(self, x):
-        x = F.relu(self.conv1(x))
-        
-        "*** YOUR CODE HERE ***"
-        utils.raiseNotDefined()
-        
-        return x
+        x = F.relu(self.bn1(self.conv1(x)))
+        x = F.relu(self.bn2(self.conv2(x)))
+        x = F.relu(self.bn3(self.conv3(x)))
+        x = x.view(x.size(0), -1)  # Flatten
 
+        value = F.relu(self.fc1_value(x))
+        value = self.value(value)
+
+        advantage = F.relu(self.fc1_advantage(x))
+        advantage = self.advantage(advantage)
+
+        q_values = value + (advantage - advantage.mean(dim=1, keepdim=True))
+        return q_values
 class ReplayBuffer:
-    # referenced [TD3 official implementation](https://github.com/sfujim/TD3/blob/master/utils.py#L5).
     def __init__(self, state_dim, action_dim, max_size=int(1e5)):
         self.states = np.zeros((max_size, *state_dim), dtype=np.float32)
         self.actions = np.zeros((max_size, *action_dim), dtype=np.int64)
@@ -51,7 +63,7 @@ class ReplayBuffer:
         return (
             torch.FloatTensor(self.states[ind]),
             torch.FloatTensor(self.actions[ind]),
-            torch.FloatTensor(self.rewards[ind]),
+            torch.LongTensor(self.rewards[ind]),
             torch.FloatTensor(self.next_states[ind]),
             torch.FloatTensor(self.terminated[ind]), 
         )
@@ -61,23 +73,15 @@ class DQN:
         self,
         state_dim,
         action_dim,
-        lr=1e-4,
+        lr=1e-5,
         epsilon=0.9,
-        epsilon_min=0.05,
+        epsilon_min=0.1,
         gamma=0.99,
         batch_size=64,
-        warmup_steps=5000,
-        buffer_size=int(1e5),
-        target_update_interval=10000,
+        warmup_steps=10000,
+        buffer_size=int(1e6),
+        target_update_interval=1000,
     ):
-        """
-        DQN agent has four methods.
-
-        - __init__() as usual
-        - act() takes as input one state of np.ndarray and output actions by following epsilon-greedy policy.
-        - process() method takes one transition as input and define what the agent do for each step.
-        - learn() method samples a mini-batch from replay buffer and train q-network
-        """
         self.action_dim = action_dim
         self.epsilon = epsilon
         self.gamma = gamma
@@ -107,55 +111,48 @@ class DQN:
         else:
             # output actions by following epsilon-greedy policy
             x = torch.from_numpy(x).float().unsqueeze(0).to(self.device)
-            
-            "*** YOUR CODE HERE ***"
-            utils.raiseNotDefined()
-            # get q-values from network
-            q_value = YOUR_CODE_HERE
-            # get action with maximum q-value
-            action = YOUR_CODE_HERE
+            q_values = self.network(x)
+            action = torch.argmax(q_values, dim=1).item()
         
         return action
     
     def learn(self):
-        "*** YOUR CODE HERE ***"
-        utils.raiseNotDefined()
-        
-        # sample a mini-batch from replay buffer
+        if self.buffer.size < self.batch_size:
+            return {}
+
         state, action, reward, next_state, terminated = map(lambda x: x.to(self.device), self.buffer.sample(self.batch_size))
         
-        # get q-values from network
-        next_q = YOUR_CODE_HERE
-        # td_target: if terminated, only reward, otherwise reward + gamma * max(next_q)
-        td_target = YOUR_CODE_HERE
-        # compute loss with td_target and q-values
-        loss = YOUR_CODE_HERE
+        # Get current Q values
+        q_values = self.network(state)
+        q_value = q_values.gather(1, action)
+
+        # Get target Q values
+        next_q_values = self.target_network(next_state)
+        max_next_q_values = next_q_values.max(dim=1, keepdim=True)[0]
+        td_target = reward + self.gamma * max_next_q_values * (1 - terminated)
         
-        # initialize optimizer
-        "self.optimizer.YOUR_CODE_HERE"
-        # backpropagation
-        YOUR_CODE_HERE
-        # update network
-        "self.optimizer.YOUR_CODE_HERE"
+        # Compute loss
+        loss = F.mse_loss(q_value, td_target)
         
-        return {YOUR_CODE_HERE} # return dictionary for logging
+        # Optimize the model
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+        
+        # Update target network
+        if self.total_steps % self.target_update_interval == 0:
+            self.target_network.load_state_dict(self.network.state_dict())
+
+        return {"loss": loss.item()}
     
     def process(self, transition):
-        "*** YOUR CODE HERE ***"
-        utils.raiseNotDefined()
-        
+        state, action, reward, next_state, terminated = transition
+        self.buffer.update(state, action, reward, next_state, terminated)
         result = {}
         self.total_steps += 1
-        
-        # update replay buffer
-        "self.buffer.YOUR_CODE_HERE"
 
         if self.total_steps > self.warmup_steps:
             result = self.learn()
             
-        if self.total_steps % self.target_update_interval == 0:
-            # update target networ
-            "self.target_network.YOUR_CODE_HERE"
-        
         self.epsilon -= self.epsilon_decay
         return result
