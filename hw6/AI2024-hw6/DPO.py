@@ -36,11 +36,27 @@ def DPO_train(args, output_dir):
 
     # Model
     # model, tokenizer = FastLanguageModel.from_pretrained(model_name=args.model_name,...)
-    utils.YOUR_CODE_HERE
+    model, tokenizer = FastLanguageModel.from_pretrained(
+        model_name=args.model_name,
+        max_seq_length=args.max_length,
+        dtype=torch_dtype,
+        load_in_4bit=True,
+    )
 
     # Perform model patching and add fast LoRA weights
-    # model = FastLanguageModel.get_peft_model(model,...)
-    utils.YOUR_CODE_HERE
+    model = FastLanguageModel.get_peft_model(
+        model,
+        r = 64,
+        target_modules = ["q_proj", "k_proj", "v_proj", "o_proj",
+                        "gate_proj", "up_proj", "down_proj",],
+        lora_alpha = 64,
+        lora_dropout = 0, # Supports any, but = 0 is optimized
+        bias = "none",    # Supports any, but = "none" is optimized
+        # [NEW] "unsloth" uses 30% less VRAM, fits 2x larger batch sizes!
+        use_gradient_checkpointing = "unsloth", # True or "unsloth" for very long context
+        random_state = 3407,
+        max_seq_length = args.max_length,
+    )
 
     # Training arguments
     training_args = TrainingArguments(
@@ -71,8 +87,8 @@ def DPO_train(args, output_dir):
     dpo_trainer = DPOTrainer(
         model=model,
         tokenizer=tokenizer,
-        train_dataset=utils.YOUR_CODE_HERE,
-        eval_dataset=utils.YOUR_CODE_HERE,
+        train_dataset=dataset['train'],
+        eval_dataset=dataset['test'],
         args=training_args,
         beta=args.beta,
         max_length=args.max_length,
