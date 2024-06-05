@@ -26,7 +26,12 @@ def ORPO_train(args, output_dir):
 
     # Model
     # model, tokenizer = FastLanguageModel.from_pretrained(args.model_name,...)
-    utils.YOUR_CODE_HERE
+    model, tokenizer = FastLanguageModel.from_pretrained(
+        model_name=args.model_name,
+        max_seq_length=args.max_length,
+        dtype=torch_dtype,
+        load_in_4bit=True,
+    )
 
     # Load dataset
     # ================================DO NOT CHANGE!================================
@@ -41,7 +46,9 @@ def ORPO_train(args, output_dir):
 
     # Perform model patching and add fast LoRA weights
     # model = FastLanguageModel.get_peft_model(model,...)
-    utils.YOUR_CODE_HERE
+    model = FastLanguageModel.get_peft_model(
+        model=model,
+    )
 
     # Training arguments
     training_args = ORPOConfig(
@@ -75,8 +82,8 @@ def ORPO_train(args, output_dir):
     orpo_trainer = ORPOTrainer(
         model=model,
         tokenizer=tokenizer,
-        train_dataset=utils.YOUR_CODE_HERE,
-        eval_dataset=utils.YOUR_CODE_HERE,
+        train_dataset=dataset["train"],
+        eval_dataset=dataset["test"],
         args=training_args,
     )
 

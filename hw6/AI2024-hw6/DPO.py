@@ -1,7 +1,6 @@
 import gc
 import os
 import json
-import utils
 import torch
 import wandb
 from tqdm.auto import tqdm
@@ -10,8 +9,7 @@ from datasets import load_dataset
 from unsloth import FastLanguageModel
 from unsloth import is_bfloat16_supported
 from transformers import TrainingArguments, TextStreamer
-
-
+import utils
 
 def DPO_train(args, output_dir):
     wandb.login(key=args.wandb_token)
@@ -34,8 +32,7 @@ def DPO_train(args, output_dir):
         test_data = json.load(f)
     # ================================DO NOT CHANGE!================================
 
-    # Model
-    # model, tokenizer = FastLanguageModel.from_pretrained(model_name=args.model_name,...)
+    # Model and tokenizer
     model, tokenizer = FastLanguageModel.from_pretrained(
         model_name=args.model_name,
         max_seq_length=args.max_length,
@@ -45,19 +42,10 @@ def DPO_train(args, output_dir):
 
     # Perform model patching and add fast LoRA weights
     model = FastLanguageModel.get_peft_model(
-        model,
-        r = 64,
-        target_modules = ["q_proj", "k_proj", "v_proj", "o_proj",
-                        "gate_proj", "up_proj", "down_proj",],
-        lora_alpha = 64,
-        lora_dropout = 0, # Supports any, but = 0 is optimized
-        bias = "none",    # Supports any, but = "none" is optimized
-        # [NEW] "unsloth" uses 30% less VRAM, fits 2x larger batch sizes!
-        use_gradient_checkpointing = "unsloth", # True or "unsloth" for very long context
-        random_state = 3407,
-        max_seq_length = args.max_length,
+        model=model,
     )
-
+    if torch.cuda.is_available():
+        model.cuda()
     # Training arguments
     training_args = TrainingArguments(
         per_device_train_batch_size=args.train_batch_size,
@@ -87,8 +75,8 @@ def DPO_train(args, output_dir):
     dpo_trainer = DPOTrainer(
         model=model,
         tokenizer=tokenizer,
-        train_dataset=dataset['train'],
-        eval_dataset=dataset['test'],
+        train_dataset=dataset["train"],
+        eval_dataset=dataset["test"],
         args=training_args,
         beta=args.beta,
         max_length=args.max_length,
@@ -109,15 +97,15 @@ def DPO_train(args, output_dir):
 
     for data in tqdm(test_data):
         print("=============Generated Answer After Fine-tuning=============\n")
-        print(f"Question {data['id']}:\n"+data["prompt"])
+        print(f"Question {data['id']}:\n" + data["prompt"])
         prompt = utils.alpaca_prompt.format(
             "You are a helpful assistant chatbot.",  # Instruction
             data["prompt"],  # Input
             "",  # Response, leave empty for generation
         )
-        prompt = tokenizer(prompt, return_tensors="pt").to("cuda")
+        prompt = tokenizer(prompt, return_tensors="pt").to(device)
         generated_sequences = model.generate(**prompt, streamer=text_streamer,
-                           max_new_tokens=500)
+                                             max_new_tokens=500)
         # Decode the generated output
         generated_text = tokenizer.batch_decode(
             generated_sequences, skip_special_tokens=True)[0]
