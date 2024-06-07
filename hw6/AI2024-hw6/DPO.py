@@ -42,7 +42,13 @@ def DPO_train(args, output_dir):
 
     # Perform model patching and add fast LoRA weights
     model = FastLanguageModel.get_peft_model(
-        model=model,
+        model,
+        r = 16,
+        target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+        lora_alpha = 16,
+        lora_dropout = 0, # Supports any, but = 0 is optimized
+        bias = "none",    # Supports any, but = "none" is optimized
+        use_gradient_checkpointing = True,
     )
     if torch.cuda.is_available():
         model.cuda()

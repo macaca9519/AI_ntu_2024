@@ -19,12 +19,14 @@ def parse_args():
                         choices=["DPO", "ORPO"])
     parser.add_argument("--model_name", type=str,
                         choices=["unsloth/llama-3-8b-bnb-4bit",
-                                 "unsloth/mistral-7b-v0.3-bnb-4bit"],
+                                 "unsloth/mistral-7b-v0.3-bnb-4bit",
+                                 "unsloth/tinyllama-bnb-4bit",
+                                 "unsloth/gemma-2b-bnb-4bit"],
                         required=True)
     parser.add_argument("--train", action="store_true")
     parser.add_argument("--inference_base_model", action="store_true")
     parser.add_argument("--wandb_token", type=str, required=True)
-    parser.add_argument("--train_batch_size", type=int, default=2)
+    parser.add_argument("--train_batch_size", type=int, default=4)
     parser.add_argument("--eval_batch_size", type=int, default=2)
     parser.add_argument("--gradient_accumulation_steps", type=int, default=8)
     parser.add_argument("--lr", type=float, default=5e-6)
