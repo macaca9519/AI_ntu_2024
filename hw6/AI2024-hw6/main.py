@@ -92,5 +92,8 @@ if __name__ == "__main__":
         elif args.model_name == "unsloth/mistral-7b-v0.3-bnb-4bit":
             print("Inference with base model: unsloth/mistral-7b-v0.3-bnb-4bit")
             inference.LLM_inference(args)
+        elif args.model_name == "unsloth/tinyllama-bnb-4bit":
+            print("Inference with base model: unsloth/tinyllama-bnb-4bit")
+            inference.LLM_inference(args)
         else:
             raise ValueError("Invalid model name")
